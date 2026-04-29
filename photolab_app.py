@@ -7,7 +7,7 @@ from datetime import datetime
 # --- Cấu hình giao diện ---
 st.set_page_config(page_title="PhotoLab Pro", page_icon="🎨", layout="wide")
 
-# --- CSS Tùy chỉnh (Đảm bảo giao diện hiện đại & không lỗi) ---
+# --- CSS Tùy chỉnh (Sửa lỗi icon và giao diện) ---
 st.markdown("""
     <style>
     .stApp { background-color: #1e1e1e; color: white; }
@@ -18,21 +18,31 @@ st.markdown("""
         margin: -6rem -5rem 2rem -5rem;
     }
     .header-title { font-family: 'Brush Script MT', cursive; font-size: 50px; color: white; margin: 0; }
-    .tool-box { background: #2d2d2d; padding: 15px; border-radius: 10px; border: 1px solid #444; }
     .stSlider [data-baseweb="slider"] { margin-bottom: 20px; }
+    /* Fix cho các nút bấm hiển thị đẹp hơn */
+    .stButton > button {
+        width: 100%;
+        background-color: #383838;
+        color: white;
+        border: 1px solid #444;
+    }
+    .stButton > button:hover {
+        border-color: #c56b20;
+        color: #c56b20;
+    }
     </style>
     <div class="main-header"><h1 class="header-title">PhotoLab</h1></div>
     """, unsafe_allow_html=True)
 
-# --- Quản lý trạng thái ---
+# --- Khởi tạo State ---
 if 'img' not in st.session_state:
     st.session_state.img = None
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- Trang chủ ---
+# --- GIAO DIỆN ---
 if st.session_state.img is None:
-    st.markdown("<h2 style='text-align: center;'>☁️ Tải ảnh lên để bắt đầu</h2>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; margin-top: 50px;'>☁️ Tải ảnh lên để bắt đầu</h2>", unsafe_allow_html=True)
     uploaded = st.file_uploader("Chọn ảnh", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
     if uploaded:
         st.session_state.img = Image.open(uploaded).convert("RGB")
@@ -40,83 +50,94 @@ if st.session_state.img is None:
     
     if st.session_state.history:
         st.write("---")
-        st.write("🕒 Ảnh vừa chỉnh sửa")
+        st.write("🕒 Ảnh trong phiên làm việc này")
         cols = st.columns(4)
         for i, h in enumerate(st.session_state.history[:4]):
             cols[i].image(h, use_container_width=True)
 else:
-    # --- Trang Editor ---
-    col_l, col_m, col_r = st.columns([1, 2, 1])
+    # Cấu hình Layout
+    col_l, col_m, col_r = st.columns([1.2, 2.5, 1.2])
 
     with col_l:
-        if st.button("⬅️ Quay lại"):
+        if st.button("⬅️ QUAY LẠI TRANG CHỦ"):
             st.session_state.img = None
             st.rerun()
         
         st.markdown("### 🛠️ Hình dáng")
-        with st.container(border=True):
-            angle = st.slider("Xoay tự do", -180, 180, 0)
-            zoom = st.slider("Thu phóng (%)", 50, 200, 100)
-            st.write("Lật ảnh")
-            c1, c2 = st.columns(2)
-            flip_h = c1.button("↔️ Ngang")
-            flip_v = c2.button("↕️ Dọc")
+        angle = st.slider("Xoay ảnh (độ)", -180, 180, 0)
+        zoom = st.slider("Thu phóng (%)", 10, 200, 100)
+        
+        st.write("Lật ảnh")
+        cl1, cl2 = st.columns(2)
+        flip_h = cl1.checkbox("Ngang")
+        flip_v = cl2.checkbox("Dọc")
 
-        st.markdown("### 🌫️ Hiệu ứng mờ")
-        with st.container(border=True):
-            blur_val = st.slider("Mờ toàn phần", 0, 20, 0)
-            st.info("Sử dụng thanh trượt để làm mờ nghệ thuật")
+        st.markdown("### 🌫️ Hiệu ứng")
+        blur_val = st.slider("Độ mờ (Blur)", 0, 20, 0)
 
     with col_r:
         st.markdown("### 🎨 Màu sắc")
-        with st.container(border=True):
-            bright = st.slider("Độ sáng", 0.5, 2.0, 1.0)
-            cont = st.slider("Tương phản", 0.5, 2.0, 1.0)
-            sat = st.slider("Bão hòa", 0.0, 2.0, 1.0)
+        bright = st.slider("Độ sáng", 0.1, 2.0, 1.0)
+        cont = st.slider("Tương phản", 0.1, 2.0, 1.0)
+        sat = st.slider("Bão hòa", 0.0, 2.0, 1.0)
         
         st.markdown("### ⚖️ Cân bằng RGB")
-        with st.container(border=True):
-            r_gain = st.slider("Red (Đỏ)", 0.5, 1.5, 1.0)
-            g_gain = st.slider("Green (Xanh lá)", 0.5, 1.5, 1.0)
-            b_gain = st.slider("Blue (Xanh dương)", 0.5, 1.5, 1.0)
+        r_gain = st.slider("Red (Đỏ)", 0.0, 2.0, 1.0)
+        g_gain = st.slider("Green (Xanh lá)", 0.0, 2.0, 1.0)
+        b_gain = st.slider("Blue (Xanh dương)", 0.0, 2.0, 1.0)
 
-        preset = st.selectbox("Bộ lọc nhanh", ["Gốc", "Vivid", "Vintage", "B&W", "Cool", "Warm"])
+        preset = st.selectbox("Bộ lọc nhanh", ["Gốc", "Sắc nét", "Trắng đen", "Hoài cổ", "Lạnh", "Ấm"])
 
-    with col_main := col_m:
-        # Xử lý Pipeline
-        out = st.session_state.img
+    with col_m:
+        # --- PIPELINE XỬ LÝ ẢNH ---
+        proc = st.session_state.img
         
-        # Xoay & Zoom
-        if angle != 0: out = out.rotate(angle, expand=True)
+        # 1. Xoay & Lật & Zoom
+        if angle != 0: proc = proc.rotate(angle, expand=True)
+        if flip_h: proc = ImageOps.mirror(proc)
+        if flip_v: proc = ImageOps.flip(proc)
         if zoom != 100:
-            w, h = out.size
-            out = out.resize((int(w*zoom/100), int(h*zoom/100)))
+            w, h = proc.size
+            proc = proc.resize((int(w*zoom/100), int(h*zoom/100)))
         
-        # Filter
-        if preset == "B&W": out = ImageOps.grayscale(out).convert("RGB")
-        elif preset == "Vintage": out = ImageOps.colorize(ImageOps.grayscale(out), "#704214", "#C0C0C0")
+        # 2. Bộ lọc (Presets)
+        if preset == "Trắng đen":
+            proc = ImageOps.grayscale(proc).convert("RGB")
+        elif preset == "Hoài cổ":
+            proc = ImageOps.colorize(ImageOps.grayscale(proc), "#704214", "#C0C0C0")
+        elif preset == "Sắc nét":
+            proc = proc.filter(ImageFilter.SHARPEN)
         
-        # RGB Balance (Nâng cao)
+        # 3. Cân bằng RGB (Sử dụng Numpy để đảm bảo tốc độ)
         if r_gain != 1.0 or g_gain != 1.0 or b_gain != 1.0:
-            data = np.array(out).astype(float)
-            data[:,:,0] *= r_gain
-            data[:,:,1] *= g_gain
-            data[:,:,2] *= b_gain
-            out = Image.fromarray(np.clip(data, 0, 255).astype('uint8'))
+            arr = np.array(proc).astype(float)
+            arr[:,:,0] *= r_gain
+            arr[:,:,1] *= g_gain
+            arr[:,:,2] *= b_gain
+            proc = Image.fromarray(np.clip(arr, 0, 255).astype('uint8'))
 
-        # Tinh chỉnh
-        out = ImageEnhance.Brightness(out).enhance(bright)
-        out = ImageEnhance.Contrast(out).enhance(cont)
-        out = ImageEnhance.Color(out).enhance(sat)
-        if blur_val > 0: out = out.filter(ImageFilter.GaussianBlur(blur_val))
+        # 4. Tinh chỉnh cơ bản
+        proc = ImageEnhance.Brightness(proc).enhance(bright)
+        proc = ImageEnhance.Contrast(proc).enhance(cont)
+        proc = ImageEnhance.Color(proc).enhance(sat)
+        if blur_val > 0:
+            proc = proc.filter(ImageFilter.GaussianBlur(blur_val))
 
-        st.image(out, use_container_width=True, caption="Bản xem trước")
+        # Hiển thị ảnh kết quả
+        st.image(proc, use_container_width=True)
 
-        # Nút hành động chính
+        # 5. Xuất bản
+        st.markdown("---")
         buf = io.BytesIO()
-        out.save(buf, format="PNG")
-        st.download_button("💾 LƯU VỀ MÁY", buf.getvalue(), "photolab_edit.png", "image/png")
+        proc.save(buf, format="PNG")
         
-        if st.button("✨ Thêm vào lịch sử"):
-            st.session_state.history.insert(0, out)
-            st.success("Đã lưu vào bộ nhớ tạm!")
+        c_save, c_hist = st.columns(2)
+        c_save.download_button(
+            label="💾 TẢI ẢNH VỀ MÁY",
+            data=buf.getvalue(),
+            file_name="photolab_pro.png",
+            mime="image/png"
+        )
+        if c_hist.button("✨ LƯU VÀO LỊCH SỬ"):
+            st.session_state.history.insert(0, proc)
+            st.toast("Đã thêm vào danh sách phía dưới!")
