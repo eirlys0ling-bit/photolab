@@ -10,10 +10,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS Tùy chỉnh theo bản thiết kế Trangchu.png và edit.png ---
+# --- CSS Tùy chỉnh (SỬA LỖI unsafe_allow_html) ---
 st.markdown("""
     <style>
-    /* Nền tối chủ đạo và font chữ */
+    /* Nền tối chủ đạo */
     .stApp {
         background-color: #262626;
         color: white;
@@ -26,6 +26,7 @@ st.markdown("""
         padding: 10px;
         text-align: center;
         margin: -6rem -5rem 2rem -5rem;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
     }
     .header-title {
         font-family: 'Brush Script MT', cursive;
@@ -48,163 +49,146 @@ st.markdown("""
         color: white;
     }
     
-    /* Nút LƯU màu cam */
-    .save-btn > div > button {
+    /* Nút LƯU màu cam ở góc phải */
+    .save-container {
+        text-align: right;
+        margin-bottom: 10px;
+    }
+    div[data-testid="stDownloadButton"] > button {
         background-color: #c56b20 !important;
-        width: 80px;
+        color: white !important;
+        border: none !important;
+        padding: 0.5rem 2rem !important;
     }
 
     /* Thanh trượt (Sliders) */
     .stSlider label {
         color: white !important;
-        font-weight: bold;
-        font-size: 14px;
-        margin-bottom: 0px;
-    }
-    div[data-baseweb="slider"] > div > div {
-        background: white !important;
-    }
-    div[role="slider"] {
-        background-color: #c56b20 !important;
-    }
-
-    /* Khung chứa ảnh preview bộ lọc */
-    .filter-box {
-        text-align: center;
-        margin-top: 10px;
-    }
-    .filter-label {
-        font-size: 12px;
-        margin-top: 5px;
+        font-weight: bold !important;
     }
     
     /* Giao diện trang chủ (Cloud upload) */
-    .upload-area {
-        border: 2px dashed white;
+    .upload-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        margin-top: 50px;
+    }
+    .cloud-icon {
+        border: 3px solid white;
         border-radius: 40px;
-        padding: 40px;
+        padding: 50px;
         text-align: center;
-        margin: 50px auto;
-        width: 300px;
+        cursor: pointer;
     }
     </style>
     <div class="main-header">
         <h1 class="header-title">PhotoLab</h1>
     </div>
-    """, unsafe_allow_headers=True)
+    """, unsafe_allow_html=True)
 
 # --- Khởi tạo State ---
 if 'img_input' not in st.session_state:
     st.session_state.img_input = None
 
-# --- GIAO DIỆN CHÍNH ---
+# --- XỬ LÝ TẢI FILE ---
 with st.sidebar:
     st.markdown("### 📥 TẢI ẢNH LÊN")
     uploaded_file = st.file_uploader("", type=["jpg", "png", "jpeg"])
     if uploaded_file:
         st.session_state.img_input = Image.open(uploaded_file)
 
+# --- GIAO DIỆN CHÍNH ---
 if st.session_state.img_input:
     img = st.session_state.img_input
     
     # Chia layout: [Công cụ | Ảnh chính | Tinh chỉnh]
     col_tools, col_main, col_adjust = st.columns([1, 2, 1])
 
-    # --- CỘT TRÁI: CÔNG CỤ (Dựa trên edit.png) ---
+    # --- CỘT TRÁI: CÔNG CỤ (Tools) ---
     with col_tools:
-        st.write("↩️ ↪️ 🔄") # Giả lập các nút Undo, Redo, Reset
+        st.write("↩️ ↪️ 🔄") 
         t1, t2, t3, t4, t5 = st.columns(5)
-        with t1: st.button("✂️")
-        with t2: st.button("↺")
-        with t3: st.button("↻")
-        with t4: st.button("↔️")
-        with t5: st.button("↕️")
+        with t1: st.button("✂️", key="crop")
+        with t2: st.button("↺", key="rot_l")
+        with t3: st.button("↻", key="rot_r")
+        with t4: st.button("↔️", key="flip_h")
+        with t5: st.button("↕️", key="flip_v")
         
         st.markdown("---")
-        st.write("**Xoay**")
-        angle = st.slider("Xoay", -180, 180, 0, label_visibility="collapsed")
-        
-        st.write("**Phóng to, thu nhỏ**")
-        zoom = st.slider("Phóng to", 10, 200, 100, label_visibility="collapsed")
+        angle = st.slider("Xoay", -180, 180, 0)
+        zoom = st.slider("Phóng to, thu nhỏ", 10, 200, 100)
         
         st.markdown("---")
         st.write("**Làm mờ**")
-        st.slider("Kích thước Bút", 1, 100, 20)
-        blur_val = st.slider("Cường độ mờ", 0, 20, 0)
+        st.slider("Bút", 1, 100, 20, key="brush")
+        blur_val = st.slider("Cường độ", 0, 20, 0, key="blur_str")
 
-    # --- CỘT GIỮA: ẢNH & BỘ LỌC ---
+    # --- CỘT GIỮA: HIỂN THỊ ẢNH ---
     with col_main:
-        # Xử lý ảnh cơ bản
+        # Áp dụng các thay đổi
         processed = img.rotate(angle, expand=True)
         if blur_val > 0:
             processed = processed.filter(ImageFilter.GaussianBlur(radius=blur_val))
         
-        # Hiển thị ảnh chính
+        # Hiển thị ảnh (Vùng Sample)
         st.image(processed, use_container_width=True)
         
-        # Hàng bộ lọc (Dựa trên chọn bộ lọc.png)
+        # Hàng bộ lọc dưới ảnh
         st.markdown("---")
         filters = ["normal", "vivid", "warm", "cool", "vintage", "greyscale"]
         f_cols = st.columns(len(filters))
         for i, f in enumerate(filters):
             with f_cols[i]:
-                # Tạo bản xem trước nhỏ (thumbnail)
                 thumb = img.resize((100, 100))
                 if f == "greyscale": thumb = ImageOps.grayscale(thumb)
                 st.image(thumb, use_container_width=True)
                 st.caption(f)
 
-    # --- CỘT PHẢI: TINH CHỈNH (Dựa trên edit.png) ---
+    # --- CỘT PHẢI: TINH CHỈNH (Adjustments) ---
     with col_adjust:
-        st.markdown('<div class="save-btn">', unsafe_allow_headers=True)
-        # Nút lưu ảnh
+        # Nút Lưu
         buf = io.BytesIO()
         processed.save(buf, format="PNG")
-        st.download_button("Lưu", buf.getvalue(), file_name="photolab_edit.png")
-        st.markdown('</div>', unsafe_allow_headers=True)
+        st.download_button("Lưu", buf.getvalue(), file_name="photolab_edited.png")
         
-        st.write("**Độ sáng**")
-        bright = st.slider("Độ sáng", 0.0, 2.0, 1.0, key="br", label_visibility="collapsed")
+        st.markdown("---")
+        bright = st.slider("Độ sáng", 0.0, 2.0, 1.0)
+        contrast = st.slider("Độ tương phản", 0.0, 2.0, 1.0)
+        sat = st.slider("Độ bão hòa", 0.0, 2.0, 1.0)
         
-        st.write("**Độ tương phản**")
-        contrast = st.slider("Độ tương phản", 0.0, 2.0, 1.0, key="ct", label_visibility="collapsed")
-        
-        st.write("**Độ bão hòa**")
-        sat = st.slider("Độ bão hòa", 0.0, 2.0, 1.0, key="st", label_visibility="collapsed")
+        # Áp dụng tinh chỉnh vào ảnh (Cần xử lý thêm Enhancer nếu muốn chạy realtime)
         
         st.markdown("---")
         st.write("**Cân bằng màu**")
-        st.slider("🔴 Red - Cyan", -100, 100, 0)
-        st.slider("🟢 Green - Magenta", -100, 100, 0)
-        st.slider("🟡 Blue - Yellow", -100, 100, 0)
+        st.slider("🔴 Red", -100, 100, 0, key="r")
+        st.slider("🟢 Green", -100, 100, 0, key="g")
+        st.slider("🟡 Blue", -100, 100, 0, key="b")
 
 else:
     # --- GIAO DIỆN TRANG CHỦ (Trangchu.png) ---
     st.markdown("""
-        <div style="text-align: center; margin-top: 30px;">
-            <div style="display: inline-block; border: 3px solid white; border-radius: 40px; padding: 40px;">
+        <div class="upload-container">
+            <div class="cloud-icon">
                 <span style="font-size: 80px;">🐱🐱</span><br>
-                <div style="margin-top: 10px;">
+                <div style="margin-top: 15px;">
                     <span style="color: #c56b20; font-size: 40px;">⬆️</span><br>
-                    <b style="font-size: 24px;">Tải ảnh lên</b>
+                    <b style="font-size: 20px;">Tải ảnh lên</b>
                 </div>
             </div>
-            <h3 style="margin-top: 40px; text-align: left; margin-left: 10%;">Gần đây</h3>
         </div>
-    """, unsafe_allow_headers=True)
-    
-    # Hiển thị demo ảnh gần đây
-    c_left, c_mid, c_right = st.columns([1, 4, 1])
-    with c_mid:
-        st.markdown("""
+        <div style="margin-top: 50px; padding: 0 10%;">
+            <h3>Gần đây</h3>
             <div style="background-color: #d9d9d9; color: black; padding: 15px; border-radius: 15px; display: flex; align-items: center; justify-content: space-between;">
                 <div style="display: flex; align-items: center;">
-                    <div style="width: 50px; height: 50px; background-color: #888; border-radius: 8px; margin-right: 15px;"></div>
+                    <div style="width: 60px; height: 60px; background-color: #888; border-radius: 10px; margin-right: 15px;"></div>
                     <div>
-                        <b>meo.jpeg</b><br>
-                        <small style="color: #555;">29/04/2026</small>
+                        <b style="font-size: 18px;">meo.jpeg</b><br>
+                        <small style="color: #666;">29/04/2026</small>
                     </div>
                 </div>
-                <span>🗑️</span>
+                <span style="font-size: 24px;">🗑️</span>
             </div>
-        """, unsafe_allow_headers=True)
+        </div>
+    """, unsafe_allow_html=True)
